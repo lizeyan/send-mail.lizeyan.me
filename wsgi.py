@@ -63,5 +63,5 @@ def application(environ, start_response):
         return [str(mail_server_pool)]
     else:
         start_response('404 Not Found')
-        return None
+        return [""]
 
