@@ -14,7 +14,7 @@ class MailServerPool:
         config_root = Path(os.path.abspath(config_root))
         self.mail_server_dict = {}  # type: Dict[MailServer]
         for config_file in config_root.glob("*.conf"):
-            with open(config_root / config_file, "r") as f:
+            with open(str(config_root / config_file), "r") as f:
                 config = json.load(f)
                 self.mail_server_dict[config["user"]] = MailServer(config["host"], config["user"], config["pass"])
 
