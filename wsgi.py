@@ -16,30 +16,28 @@ class MailServerPool:
         for config_file in config_root.glob("*.conf"):
             with open(str(config_root / config_file), "r") as f:
                 config = json.load(f)
-                self.mail_server_dict[config["user"]] = MailServer(config["host"], config["user"], config["pass"], config.get("port", 25), config.get("server_type", "SMTP"))
+                server_type = config.get("server_type", "Outlook")
+                assert server_type in ("Outlook", "MailsTsinghua")
+                self.mail_server_dict[config["user"]] = eval(server_type)(config["user"], config["pass"])
 
     def __str__(self):
         return str(list(_.mail_user for _ in self.mail_server_dict.values()))
 
 
-class MailServer:
-    def __init__(self, mail_host, mail_user, mail_pass, mail_port=25, server_type=SMTP):
-        self.mail_host = mail_host
+class Outlook:
+    def __init__(self, mail_user, mail_pass):
+        self.mail_host = "smtp-mail.outlook.com"
         self.mail_user = mail_user
         self.mail_pass = mail_pass
-        self.mail_port = mail_port
-        assert server_type in ("SMTP", "SMTP_SSL")
-        self.server_cls = server_type
 
     def send_mail(self, sub, content, to_list):
-
         msg = MIMEText(content, _subtype='plain')
         msg['Subject'] = sub
         msg['From'] = "hello"+"<"+self.mail_user+">"
         msg['To'] = ";".join(to_list)
         try:
-            server = eval(self.server_cls)()
-            server.connect(self.mail_host, self.mail_port)
+            server = SMTP()
+            server.connect(self.mail_host, 587)
             server.ehlo()
             server.starttls()
             server.ehlo()
@@ -52,6 +50,32 @@ class MailServer:
         ret.update({"sub": sub, "content": content, "to_list": to_list})
         del ret["mail_pass"]
         return ret
+
+
+class MailsTsinghua:
+    def __init__(self, mail_user, mail_pass):
+        self.mail_host = "mails.tsinghua.edu.cn"
+        self.mail_user = mail_user
+        self.mail_pass = mail_pass
+
+    def send_mail(self, sub, content, to_list):
+        msg = MIMEText(content, _subtype='plain')
+        msg['Subject'] = sub
+        msg['From'] = "hello"+"<"+self.mail_user+">"
+        msg['To'] = ";".join(to_list)
+        try:
+            server = SMTP_SSL()
+            server.connect(self.mail_host)
+            server.login(self.mail_user, self.mail_pass)
+            server.sendmail(self.mail_user, to_list, msg.as_string())
+            ret = {"status": "success"}
+        except Exception as e:
+            ret = {"status": "fail", "error_msg": str(e)}
+        ret.update(self.__dict__)
+        ret.update({"sub": sub, "content": content, "to_list": to_list})
+        del ret["mail_pass"]
+        return ret
+
 
 
 
