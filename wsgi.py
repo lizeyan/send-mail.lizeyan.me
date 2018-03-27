@@ -24,23 +24,21 @@ class MailServerPool:
         return str(list(_.mail_user for _ in self.mail_server_dict.values()))
 
 
-class Outlook:
-    def __init__(self, mail_user, mail_pass):
-        self.mail_host = "smtp-mail.outlook.com"
+class MailServer:
+    def __init__(self, mail_host, server_cls, mail_user, mail_pass):
+        self.mail_host = mail_host
+        self.server_cls = server_cls
         self.mail_user = mail_user
         self.mail_pass = mail_pass
 
     def send_mail(self, sub, content, to_list):
         msg = MIMEText(content, _subtype='plain')
         msg['Subject'] = sub
-        msg['From'] = "hello"+"<"+self.mail_user+">"
+        msg['From'] = "<" + self.mail_user + ">"
         msg['To'] = ";".join(to_list)
         try:
-            server = SMTP()
-            server.connect(self.mail_host, 587)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
+            server = self.server_cls()
+            self.connect(server)
             server.login(self.mail_user, self.mail_pass)
             server.sendmail(self.mail_user, to_list, msg.as_string())
             ret = {"status": "success"}
@@ -51,30 +49,27 @@ class Outlook:
         del ret["mail_pass"]
         return ret
 
+    def connect(self, server):
+        raise NotImplementedError()
 
-class MailsTsinghua:
+
+class Outlook(MailServer):
+    def connect(self, server):
+        server.connect(self.mail_host, 587)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+
     def __init__(self, mail_user, mail_pass):
-        self.mail_host = "mails.tsinghua.edu.cn"
-        self.mail_user = mail_user
-        self.mail_pass = mail_pass
+        super().__init__("smtp-mail.outlook.com", SMTP, mail_user, mail_pass)
 
-    def send_mail(self, sub, content, to_list):
-        msg = MIMEText(content, _subtype='plain')
-        msg['Subject'] = sub
-        msg['From'] = "hello"+"<"+self.mail_user+">"
-        msg['To'] = ";".join(to_list)
-        try:
-            server = SMTP_SSL()
-            server.connect(self.mail_host)
-            server.login(self.mail_user, self.mail_pass)
-            server.sendmail(self.mail_user, to_list, msg.as_string())
-            ret = {"status": "success"}
-        except Exception as e:
-            ret = {"status": "fail", "error_msg": str(e)}
-        ret.update(self.__dict__)
-        ret.update({"sub": sub, "content": content, "to_list": to_list})
-        del ret["mail_pass"]
-        return ret
+
+class MailsTsinghua(MailServer):
+    def connect(self, server):
+        server.connect(self.mail_host)
+
+    def __init__(self, mail_user, mail_pass):
+        super(MailsTsinghua, self).__init__("mails.tsinghua.edu.cn", SMTP_SSL, mail_user, mail_pass)
 
 
 def application(environ, start_response):
