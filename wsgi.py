@@ -77,9 +77,6 @@ class MailsTsinghua:
         return ret
 
 
-
-
-
 def application(environ, start_response):
     query_string = parse_qs(environ["QUERY_STRING"])
     sub = ";".join(query_string.get("sub", []))
