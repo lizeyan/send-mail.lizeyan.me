@@ -44,9 +44,8 @@ class MailServer:
             ret = {"status": "success"}
         except Exception as e:
             ret = {"status": "fail", "error_msg": str(e)}
-        ret.update(self.__dict__)
+        ret.update({"host": self.mail_host, "user": self.mail_user})
         ret.update({"sub": sub, "content": content, "to_list": to_list})
-        del ret["mail_pass"]
         return ret
 
     def connect(self, server):
